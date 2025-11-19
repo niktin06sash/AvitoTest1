@@ -3,6 +3,7 @@ package main
 import (
 	"AvitoTest1/internal/handler"
 	"AvitoTest1/internal/server"
+	"AvitoTest1/internal/storage"
 	"context"
 	"fmt"
 	"log"
@@ -13,6 +14,13 @@ import (
 )
 
 func main() {
+	db, err := storage.NewDBObject("")
+	if err != nil {
+		log.Println("Error while connect to Database")
+		return
+	}
+	defer db.Close()
+
 	handler := handler.NewHandler()
 	server := server.NewServer(handler)
 	//gracefull shutdown
