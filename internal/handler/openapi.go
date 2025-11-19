@@ -20,7 +20,6 @@ const (
 	PREXISTS    ErrorResponseErrorCode = "PR_EXISTS"
 	PRMERGED    ErrorResponseErrorCode = "PR_MERGED"
 	TEAMEXISTS  ErrorResponseErrorCode = "TEAM_EXISTS"
-	INTERNALSERVER ErrorResponseErrorCode = "INTERNAL_SERVER"
 )
 
 // ErrorResponse defines model for ErrorResponse.

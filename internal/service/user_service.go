@@ -8,6 +8,7 @@ import (
 
 type UserStorage interface {
 	UpdateActive(ctx context.Context, userId string, status bool) (*models.User, error)
+	SelectReviews(ctx context.Context, userId string) ([]*models.PullRequestShort, error)
 }
 type UserServiceImpl struct {
 	Ust UserStorage
@@ -25,4 +26,12 @@ func (us *UserServiceImpl) SetIsActive(ctx context.Context, userid string, statu
 		return nil, err
 	}
 	return user, nil
+}
+func (us *UserServiceImpl) GetUsersReview(ctx context.Context, userid string) ([]*models.PullRequestShort, error) {
+	reqs, err := us.Ust.SelectReviews(ctx, userid)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return reqs, nil
 }
