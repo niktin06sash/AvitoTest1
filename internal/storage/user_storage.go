@@ -3,10 +3,6 @@ package storage
 import (
 	"AvitoTest1/internal/models"
 	"context"
-	"errors"
-	"fmt"
-
-	"github.com/jackc/pgx/v5"
 )
 
 type UserStorageImpl struct {
@@ -27,11 +23,29 @@ func (us *UserStorageImpl) UpdateActive(ctx context.Context, userId string, stat
 	err := us.db.pool.QueryRow(ctx, query, status, userId).Scan(
 		&user.UserId, &user.Username, &user.TeamName, &user.IsActive)
 	if err != nil {
-		//если пользователя не существует - returning вернет ошибку
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, errors.New("client: user not found")
-		}
-		return nil, fmt.Errorf("server: %v", err)
+		return nil, err
 	}
 	return user, nil
+}
+func (us *UserStorageImpl) SelectReviews(ctx context.Context, userId string) ([]*models.PullRequestShort, error) {
+	const query = `
+	SELECT pull_request_id, pull_request_name, author_id, status
+	FROM pull_requests
+	WHERE $1 = ANY(pr.assigned_reviewers);
+	`
+	rows, err := us.db.pool.Query(ctx, query, userId)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	prs := make([]*models.PullRequestShort, 0)
+	for rows.Next() {
+		pr := &models.PullRequestShort{}
+		err := rows.Scan(&pr.PullRequestId, &pr.PullRequestName, &pr.AuthorId, &pr.Status)
+		if err != nil {
+			return nil, err
+		}
+		prs = append(prs, pr)
+	}
+	return prs, nil
 }
