@@ -3,6 +3,7 @@ package main
 import (
 	"AvitoTest1/internal/handler"
 	"AvitoTest1/internal/server"
+	"AvitoTest1/internal/service"
 	"AvitoTest1/internal/storage"
 	"context"
 	"fmt"
@@ -20,8 +21,9 @@ func main() {
 		return
 	}
 	defer db.Close()
-
-	handler := handler.NewHandler()
+	st := storage.NewStorage(db)
+	srvc := service.NewService(st.Usst)
+	handler := handler.NewHandler(srvc.UserService)
 	server := server.NewServer(handler)
 	//gracefull shutdown
 	serverError := make(chan error, 1)

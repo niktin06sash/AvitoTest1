@@ -8,7 +8,6 @@ package handler
 import (
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/oapi-codegen/runtime"
 )
@@ -21,18 +20,7 @@ const (
 	PREXISTS    ErrorResponseErrorCode = "PR_EXISTS"
 	PRMERGED    ErrorResponseErrorCode = "PR_MERGED"
 	TEAMEXISTS  ErrorResponseErrorCode = "TEAM_EXISTS"
-)
-
-// Defines values for PullRequestStatus.
-const (
-	PullRequestStatusMERGED PullRequestStatus = "MERGED"
-	PullRequestStatusOPEN   PullRequestStatus = "OPEN"
-)
-
-// Defines values for PullRequestShortStatus.
-const (
-	PullRequestShortStatusMERGED PullRequestShortStatus = "MERGED"
-	PullRequestShortStatusOPEN   PullRequestShortStatus = "OPEN"
+	INTERNALSERVER ErrorResponseErrorCode = "INTERNAL_SERVER"
 )
 
 // ErrorResponse defines model for ErrorResponse.
@@ -46,52 +34,6 @@ type ErrorResponse struct {
 // ErrorResponseErrorCode defines model for ErrorResponse.Error.Code.
 type ErrorResponseErrorCode string
 
-// PullRequest defines model for PullRequest.
-type PullRequest struct {
-	// AssignedReviewers user_id назначенных ревьюверов (0..2)
-	AssignedReviewers []string          `json:"assigned_reviewers"`
-	AuthorId          string            `json:"author_id"`
-	CreatedAt         *time.Time        `json:"createdAt"`
-	MergedAt          *time.Time        `json:"mergedAt"`
-	PullRequestId     string            `json:"pull_request_id"`
-	PullRequestName   string            `json:"pull_request_name"`
-	Status            PullRequestStatus `json:"status"`
-}
-
-// PullRequestStatus defines model for PullRequest.Status.
-type PullRequestStatus string
-
-// PullRequestShort defines model for PullRequestShort.
-type PullRequestShort struct {
-	AuthorId        string                 `json:"author_id"`
-	PullRequestId   string                 `json:"pull_request_id"`
-	PullRequestName string                 `json:"pull_request_name"`
-	Status          PullRequestShortStatus `json:"status"`
-}
-
-// PullRequestShortStatus defines model for PullRequestShort.Status.
-type PullRequestShortStatus string
-
-// Team defines model for Team.
-type Team struct {
-	Members  []TeamMember `json:"members"`
-	TeamName string       `json:"team_name"`
-}
-
-// TeamMember defines model for TeamMember.
-type TeamMember struct {
-	IsActive bool   `json:"is_active"`
-	UserId   string `json:"user_id"`
-	Username string `json:"username"`
-}
-
-// User defines model for User.
-type User struct {
-	IsActive bool   `json:"is_active"`
-	TeamName string `json:"team_name"`
-	UserId   string `json:"user_id"`
-	Username string `json:"username"`
-}
 
 // TeamNameQuery defines model for TeamNameQuery.
 type TeamNameQuery = string
@@ -143,9 +85,6 @@ type PostPullRequestMergeJSONRequestBody PostPullRequestMergeJSONBody
 
 // PostPullRequestReassignJSONRequestBody defines body for PostPullRequestReassign for application/json ContentType.
 type PostPullRequestReassignJSONRequestBody PostPullRequestReassignJSONBody
-
-// PostTeamAddJSONRequestBody defines body for PostTeamAdd for application/json ContentType.
-type PostTeamAddJSONRequestBody = Team
 
 // PostUsersSetIsActiveJSONRequestBody defines body for PostUsersSetIsActive for application/json ContentType.
 type PostUsersSetIsActiveJSONRequestBody PostUsersSetIsActiveJSONBody
@@ -392,8 +331,10 @@ func (e *TooManyValuesForParamError) Error() string {
 }
 
 // Handler creates http.Handler with routing matching OpenAPI spec.
-func NewHandler() http.Handler {
-	handler := &HandlerImpl{}
+func NewHandler(usService UserService) http.Handler {
+	handler := &HandlerImpl{
+		usService: usService,
+	}
 	return HandlerWithOptions(handler, StdHTTPServerOptions{})
 }
 
