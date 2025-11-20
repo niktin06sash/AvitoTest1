@@ -330,9 +330,10 @@ func (e *TooManyValuesForParamError) Error() string {
 }
 
 // Handler creates http.Handler with routing matching OpenAPI spec.
-func NewHandler(usService UserService) http.Handler {
+func NewHandler(usService UserService, tService TeamService) http.Handler {
 	handler := &HandlerImpl{
 		usService: usService,
+		tService: tService,
 	}
 	return HandlerWithOptions(handler, StdHTTPServerOptions{})
 }

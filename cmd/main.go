@@ -23,7 +23,7 @@ func main() {
 	defer db.Close()
 	st := storage.NewStorage(db)
 	srvc := service.NewService(st.Usst)
-	handler := handler.NewHandler(srvc.UserService)
+	handler := handler.NewHandler(srvc.UserService, srvc.TeamService)
 	server := server.NewServer(handler)
 	//gracefull shutdown
 	serverError := make(chan error, 1)
