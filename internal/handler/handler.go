@@ -16,7 +16,8 @@ type TeamService interface {
 	GetTeam(ctx context.Context, teamname string) (*models.Team, error)
 }
 type PullRequestService interface {
-	PullRequestCreate(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error)
+	CreatePullRequest(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error)
+	MergePullRequest(ctx context.Context, prID string) (*models.PullRequest, error)
 }
 type HandlerImpl struct {
 	usService UserService
@@ -42,7 +43,7 @@ func (h *HandlerImpl) PostPullRequestCreate(w http.ResponseWriter, r *http.Reque
 		json.NewEncoder(w).Encode(errResp)
 		return
 	}
-	pr, err := h.prService.PullRequestCreate(r.Context(), req.AuthorId, req.PullRequestId, req.PullRequestName)
+	pr, err := h.prService.CreatePullRequest(r.Context(), req.AuthorId, req.PullRequestId, req.PullRequestName)
 	if err != nil {
 		if err.Error() == "resource not found" {
 			w.Header().Set("Content-Type", "application/json")
@@ -78,7 +79,42 @@ func (h *HandlerImpl) PostPullRequestCreate(w http.ResponseWriter, r *http.Reque
 	json.NewEncoder(w).Encode(pr)
 }
 func (h *HandlerImpl) PostPullRequestMerge(w http.ResponseWriter, r *http.Request) {
-
+	var req PostPullRequestMergeJSONBody
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		errResp := ErrorResponse{
+			Error: struct {
+				Code    ErrorResponseErrorCode "json:\"code\""
+				Message string                 "json:\"message\""
+			}{
+				Code:    NOTFOUND,
+				Message: "resource not found",
+			},
+		}
+		json.NewEncoder(w).Encode(errResp)
+		return
+	}
+	pr, err := h.prService.MergePullRequest(r.Context(), req.PullRequestId)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		errResp := ErrorResponse{
+			Error: struct {
+				Code    ErrorResponseErrorCode "json:\"code\""
+				Message string                 "json:\"message\""
+			}{
+				Code:    NOTFOUND,
+				Message: "resource not found",
+			},
+		}
+		json.NewEncoder(w).Encode(errResp)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(pr)
 }
 func (h *HandlerImpl) PostPullRequestReassign(w http.ResponseWriter, r *http.Request) {
 
