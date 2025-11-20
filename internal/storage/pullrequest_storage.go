@@ -41,3 +41,19 @@ func (us *PullRequestStorageImpl) InsertPullRequest(ctx context.Context, pr *mod
 	_, err := us.db.pool.Exec(ctx, query, pr.AssignedReviewers, pr.AuthorId, pr.CreatedAt, pr.PullRequestId, pr.PullRequestName, pr.Status)
 	return err
 }
+func (us *PullRequestStorageImpl) UpdateStatusPullRequest(ctx context.Context, prID string, status models.PullRequestStatus) (*models.PullRequest, error) {
+	const query = `UPDATE pull_requests 
+	SET 
+   		status = $2,
+    	merged_at = COALESCE(merged_at, NOW())
+	WHERE pr_id = $1 
+	RETURNING status, merged_at, assigned_reviewers, author_id, status, pull_request_id, pull_request_name, created_at
+	`
+	pr := &models.PullRequest{}
+	err := us.db.pool.QueryRow(ctx, query, prID, status).Scan(&pr.Status, &pr.MergedAt, &pr.AssignedReviewers, &pr.AuthorId, &pr.Status,
+		&pr.PullRequestId, &pr.PullRequestName, &pr.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return pr, nil
+}

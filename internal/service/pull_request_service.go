@@ -14,6 +14,7 @@ type PullRequestServiceUserStorage interface {
 }
 type PullRequestServicePullRequestsStorage interface {
 	InsertPullRequest(ctx context.Context, pr *models.PullRequest) error
+	UpdateStatusPullRequest(ctx context.Context, prID string, status models.PullRequestStatus) (*models.PullRequest, error)
 }
 type PullRequestServiceImpl struct {
 	Ust  PullRequestServiceUserStorage
@@ -26,7 +27,7 @@ func NewPullRequestService(ust PullRequestServiceUserStorage, prst PullRequestSe
 		PRst: prst,
 	}
 }
-func (pr *PullRequestServiceImpl) PullRequestCreate(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error) {
+func (pr *PullRequestServiceImpl) CreatePullRequest(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error) {
 	members, err := pr.Ust.SelectActiveMembers(ctx, authorID)
 	if err != nil {
 		log.Println(err)
@@ -67,4 +68,12 @@ func (pr *PullRequestServiceImpl) PullRequestCreate(ctx context.Context, authorI
 		return nil, errors.New("PR id already exists")
 	}
 	return prs, nil
+}
+func (pr *PullRequestServiceImpl) MergePullRequest(ctx context.Context, prID string) (*models.PullRequest, error) {
+	prq, err := pr.PRst.UpdateStatusPullRequest(ctx, prID, models.PullRequestStatusMERGED)
+	if err != nil {
+		log.Println(err)
+		return nil, err
+	}
+	return prq, nil
 }
