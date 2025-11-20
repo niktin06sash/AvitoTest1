@@ -7,14 +7,16 @@ import (
 )
 
 type Service struct {
-	UserService *UserServiceImpl
-	TeamService *TeamServiceImpl
+	UserService        *UserServiceImpl
+	TeamService        *TeamServiceImpl
+	PullRequestService *PullRequestServiceImpl
 }
 
-func NewService(txman TxManagerStorage, tts TeamServiceTeamStorage, tsu TeamServiceUserStorage, ususs UserServiceUserStorage, usprs UserServicePullRequestsStorage) *Service {
+func NewService(txman TxManagerStorage, tts TeamServiceTeamStorage, tsu TeamServiceUserStorage, ususs UserServiceUserStorage, usprs UserServicePullRequestsStorage, prus PullRequestServiceUserStorage, prpr PullRequestServicePullRequestsStorage) *Service {
 	return &Service{
-		UserService: NewUserService(ususs, usprs),
-		TeamService: NewTeamService(tts, tsu, txman),
+		UserService:        NewUserService(ususs, usprs),
+		TeamService:        NewTeamService(tts, tsu, txman),
+		PullRequestService: NewPullRequestService(prus, prpr),
 	}
 }
 

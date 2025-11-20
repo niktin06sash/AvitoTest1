@@ -22,8 +22,8 @@ func main() {
 	}
 	defer db.Close()
 	st := storage.NewStorage(db)
-	srvc := service.NewService(st.TxMan, st.Tst, st.Usst, st.Usst)
-	handler := handler.NewHandler(srvc.UserService, srvc.TeamService)
+	srvc := service.NewService(st.TxMan, st.Tst, st.Usst, st.Usst, st.PRst, st.Usst, st.PRst)
+	handler := handler.NewHandler(srvc.UserService, srvc.TeamService, srvc.PullRequestService)
 	server := server.NewServer(handler)
 	//gracefull shutdown
 	serverError := make(chan error, 1)

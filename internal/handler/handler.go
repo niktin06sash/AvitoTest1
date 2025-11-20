@@ -15,12 +15,67 @@ type TeamService interface {
 	AddTeam(ctx context.Context, team *models.Team) error
 	GetTeam(ctx context.Context, teamname string) (*models.Team, error)
 }
+type PullRequestService interface {
+	PullRequestCreate(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error)
+}
 type HandlerImpl struct {
 	usService UserService
 	tService  TeamService
+	prService PullRequestService
 }
 
 func (h *HandlerImpl) PostPullRequestCreate(w http.ResponseWriter, r *http.Request) {
+	var req PostPullRequestCreateJSONBody
+	err := json.NewDecoder(r.Body).Decode(&req)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		errResp := ErrorResponse{
+			Error: struct {
+				Code    ErrorResponseErrorCode "json:\"code\""
+				Message string                 "json:\"message\""
+			}{
+				Code:    NOTFOUND,
+				Message: "resource not found",
+			},
+		}
+		json.NewEncoder(w).Encode(errResp)
+		return
+	}
+	pr, err := h.prService.PullRequestCreate(r.Context(), req.AuthorId, req.PullRequestId, req.PullRequestName)
+	if err != nil {
+		if err.Error() == "resource not found" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			errResp := ErrorResponse{
+				Error: struct {
+					Code    ErrorResponseErrorCode "json:\"code\""
+					Message string                 "json:\"message\""
+				}{
+					Code:    NOTFOUND,
+					Message: "resource not found",
+				},
+			}
+			json.NewEncoder(w).Encode(errResp)
+		} else if err.Error() == "PR id already exists" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(409)
+			errResp := ErrorResponse{
+				Error: struct {
+					Code    ErrorResponseErrorCode "json:\"code\""
+					Message string                 "json:\"message\""
+				}{
+					Code:    PREXISTS,
+					Message: "PR id already exists",
+				},
+			}
+			json.NewEncoder(w).Encode(errResp)
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(201)
+	json.NewEncoder(w).Encode(pr)
 }
 func (h *HandlerImpl) PostPullRequestMerge(w http.ResponseWriter, r *http.Request) {
 

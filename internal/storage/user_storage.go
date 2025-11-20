@@ -75,25 +75,29 @@ func (us *UserStorageImpl) SelectTeamMember(ctx context.Context, teamname string
 	team.TeamName = teamname
 	return team, nil
 }
-func (us *UserStorageImpl) SelectReviews(ctx context.Context, userId string) ([]*models.PullRequestShort, error) {
+func (us *UserStorageImpl) SelectActiveMembers(ctx context.Context, authorID string) (*models.Team, error) {
 	const query = `
-	SELECT pull_request_id, pull_request_name, author_id, status
-	FROM pull_requests
-	WHERE $1 = ANY(pr.assigned_reviewers);
-	`
-	rows, err := us.db.pool.Query(ctx, query, userId)
+    SELECT u2.user_id, u2.username, u2.is_active, u1.team_name
+    FROM users AS u1
+    JOIN users AS u2 
+        ON u2.team_name = u1.team_name
+       AND u2.is_active = TRUE
+       AND u2.user_id <> u1.user_id
+    WHERE u1.user_id = $1
+    `
+	rows, err := us.db.pool.Query(ctx, query, authorID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	prs := make([]*models.PullRequestShort, 0)
+	team := &models.Team{}
 	for rows.Next() {
-		pr := &models.PullRequestShort{}
-		err := rows.Scan(&pr.PullRequestId, &pr.PullRequestName, &pr.AuthorId, &pr.Status)
+		member := models.TeamMember{}
+		err := rows.Scan(&member.UserId, &member.Username, &member.IsActive, &team.TeamName)
 		if err != nil {
 			return nil, err
 		}
-		prs = append(prs, pr)
+		team.Members = append(team.Members, member)
 	}
-	return prs, nil
+	return team, nil
 }
