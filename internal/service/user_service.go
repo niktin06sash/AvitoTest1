@@ -6,17 +6,21 @@ import (
 	"log"
 )
 
-type UserStorage interface {
+type UserServiceUserStorage interface {
 	UpdateActive(ctx context.Context, userId string, status bool) (*models.User, error)
+}
+type UserServicePullRequestsStorage interface {
 	SelectReviews(ctx context.Context, userId string) ([]*models.PullRequestShort, error)
 }
 type UserServiceImpl struct {
-	Ust UserStorage
+	Ust  UserServiceUserStorage
+	PRst UserServicePullRequestsStorage
 }
 
-func NewUserService(usSt UserStorage) *UserServiceImpl {
+func NewUserService(usSt UserServiceUserStorage, prSt UserServicePullRequestsStorage) *UserServiceImpl {
 	return &UserServiceImpl{
-		Ust: usSt,
+		Ust:  usSt,
+		PRst: prSt,
 	}
 }
 func (us *UserServiceImpl) SetIsActive(ctx context.Context, userid string, status bool) (*models.User, error) {
@@ -28,7 +32,7 @@ func (us *UserServiceImpl) SetIsActive(ctx context.Context, userid string, statu
 	return user, nil
 }
 func (us *UserServiceImpl) GetUsersReview(ctx context.Context, userid string) ([]*models.PullRequestShort, error) {
-	reqs, err := us.Ust.SelectReviews(ctx, userid)
+	reqs, err := us.PRst.SelectReviews(ctx, userid)
 	if err != nil {
 		log.Println(err)
 		return nil, err
