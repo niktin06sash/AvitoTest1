@@ -11,9 +11,9 @@ type Service struct {
 	TeamService *TeamServiceImpl
 }
 
-func NewService(usSt UserStorage, txman TxManagerStorage, tts TeamServiceTeamStorage, tsu TeamServiceUserStorage) *Service {
+func NewService(txman TxManagerStorage, tts TeamServiceTeamStorage, tsu TeamServiceUserStorage, ususs UserServiceUserStorage, usprs UserServicePullRequestsStorage) *Service {
 	return &Service{
-		UserService: NewUserService(usSt),
+		UserService: NewUserService(ususs, usprs),
 		TeamService: NewTeamService(tts, tsu, txman),
 	}
 }
