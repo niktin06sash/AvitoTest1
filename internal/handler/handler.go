@@ -13,6 +13,7 @@ type UserService interface {
 }
 type TeamService interface {
 	AddTeam(ctx context.Context, team *models.Team) error
+	GetTeam(ctx context.Context, teamname string) (*models.Team, error)
 }
 type HandlerImpl struct {
 	usService UserService
@@ -20,7 +21,6 @@ type HandlerImpl struct {
 }
 
 func (h *HandlerImpl) PostPullRequestCreate(w http.ResponseWriter, r *http.Request) {
-
 }
 func (h *HandlerImpl) PostPullRequestMerge(w http.ResponseWriter, r *http.Request) {
 
@@ -68,7 +68,25 @@ func (h *HandlerImpl) PostTeamAdd(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HandlerImpl) GetTeamGet(w http.ResponseWriter, r *http.Request, params GetTeamGetParams) {
-
+	team, err := h.tService.GetTeam(r.Context(), params.TeamName)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		errResp := ErrorResponse{
+			Error: struct {
+				Code    ErrorResponseErrorCode "json:\"code\""
+				Message string                 "json:\"message\""
+			}{
+				Code:    NOTFOUND,
+				Message: "resource not found",
+			},
+		}
+		json.NewEncoder(w).Encode(errResp)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(team)
 }
 
 func (h *HandlerImpl) GetUsersGetReview(w http.ResponseWriter, r *http.Request, params GetUsersGetReviewParams) {
@@ -82,7 +100,7 @@ func (h *HandlerImpl) GetUsersGetReview(w http.ResponseWriter, r *http.Request, 
 				Message string                 "json:\"message\""
 			}{
 				Code:    NOTFOUND,
-				Message: "user not found",
+				Message: "resource not found",
 			},
 		}
 		json.NewEncoder(w).Encode(errResp)
@@ -108,7 +126,7 @@ func (h *HandlerImpl) PostUsersSetIsActive(w http.ResponseWriter, r *http.Reques
 				Message string                 "json:\"message\""
 			}{
 				Code:    NOTFOUND,
-				Message: "user not found",
+				Message: "resource not found",
 			},
 		}
 		json.NewEncoder(w).Encode(errResp)
@@ -123,7 +141,7 @@ func (h *HandlerImpl) PostUsersSetIsActive(w http.ResponseWriter, r *http.Reques
 				Message string                 "json:\"message\""
 			}{
 				Code:    NOTFOUND,
-				Message: "user not found",
+				Message: "resource not found",
 			},
 		}
 		json.NewEncoder(w).Encode(errResp)

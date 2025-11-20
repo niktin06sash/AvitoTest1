@@ -3,6 +3,8 @@ package storage
 import (
 	"AvitoTest1/internal/models"
 	"context"
+
+	"github.com/jackc/pgx/v5"
 )
 
 type UserStorageImpl struct {
@@ -27,7 +29,7 @@ func (us *UserStorageImpl) UpdateActive(ctx context.Context, userId string, stat
 	}
 	return user, nil
 }
-func (ts *UserStorageImpl) InsertOrUpdateUsers(ctx context.Context, members []models.TeamMember, teamname string) error {
+func (ts *UserStorageImpl) InsertOrUpdateUsers(ctx context.Context, tx pgx.Tx, members []models.TeamMember, teamname string) error {
 	const query = `
     INSERT INTO users (user_id, username, is_active, team_name)
     VALUES ($1, $2, $3, $4)
@@ -38,7 +40,7 @@ func (ts *UserStorageImpl) InsertOrUpdateUsers(ctx context.Context, members []mo
         team_name = EXCLUDED.team_name
     `
 	for _, member := range members {
-		_, err := ts.db.pool.Exec(ctx, query,
+		_, err := tx.Exec(ctx, query,
 			member.UserId,
 			member.Username,
 			member.IsActive,
@@ -49,6 +51,29 @@ func (ts *UserStorageImpl) InsertOrUpdateUsers(ctx context.Context, members []mo
 		}
 	}
 	return nil
+}
+func (us *UserStorageImpl) SelectTeamMember(ctx context.Context, teamname string) (*models.Team, error) {
+	const query = `
+    SELECT user_id, username, is_active
+    FROM users 
+    WHERE team_name = $1
+    `
+	rows, err := us.db.pool.Query(ctx, query, teamname)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	team := &models.Team{}
+	for rows.Next() {
+		member := models.TeamMember{}
+		err := rows.Scan(&member.UserId, &member.Username, &member.IsActive)
+		if err != nil {
+			return nil, err
+		}
+		team.Members = append(team.Members, member)
+	}
+	team.TeamName = teamname
+	return team, nil
 }
 func (us *UserStorageImpl) SelectReviews(ctx context.Context, userId string) ([]*models.PullRequestShort, error) {
 	const query = `
