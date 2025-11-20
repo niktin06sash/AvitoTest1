@@ -27,6 +27,29 @@ func (us *UserStorageImpl) UpdateActive(ctx context.Context, userId string, stat
 	}
 	return user, nil
 }
+func (ts *UserStorageImpl) InsertOrUpdateUsers(ctx context.Context, members []models.TeamMember, teamname string) error {
+	const query = `
+    INSERT INTO users (user_id, username, is_active, team_name)
+    VALUES ($1, $2, $3, $4)
+    ON CONFLICT (user_id) 
+    DO UPDATE SET 
+        username = EXCLUDED.username,
+        is_active = EXCLUDED.is_active,
+        team_name = EXCLUDED.team_name
+    `
+	for _, member := range members {
+		_, err := ts.db.pool.Exec(ctx, query,
+			member.UserId,
+			member.Username,
+			member.IsActive,
+			teamname,
+		)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func (us *UserStorageImpl) SelectReviews(ctx context.Context, userId string) ([]*models.PullRequestShort, error) {
 	const query = `
 	SELECT pull_request_id, pull_request_name, author_id, status
