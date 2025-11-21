@@ -1,4 +1,4 @@
-package service
+package team
 
 import (
 	mye "AvitoTest1/internal/errors"
@@ -9,28 +9,34 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-type TeamServiceTeamStorage interface {
+type TeamStorage interface {
 	InsertTeam(ctx context.Context, tx pgx.Tx, team *models.Team) error
 	SelectExistTeam(ctx context.Context, tn string) error
 }
-type TeamServiceUserStorage interface {
+type UserStorage interface {
 	InsertOrUpdateUsers(ctx context.Context, tx pgx.Tx, members []models.TeamMember, teamname string) error
 	SelectTeamMember(ctx context.Context, tn string) (*models.Team, error)
 }
-type TeamServiceImpl struct {
-	Tst TeamServiceTeamStorage
-	Txm TxManagerStorage
-	Ust TeamServiceUserStorage
+type TxManagerStorage interface {
+	BeginTx(ctx context.Context) (pgx.Tx, error)
+	Commit(ctx context.Context, tx pgx.Tx) error
+	Rollback(ctx context.Context, tx pgx.Tx) error
 }
 
-func NewTeamService(tst TeamServiceTeamStorage, ust TeamServiceUserStorage, txman TxManagerStorage) *TeamServiceImpl {
-	return &TeamServiceImpl{
+type ServiceImpl struct {
+	Tst TeamStorage
+	Txm TxManagerStorage
+	Ust UserStorage
+}
+
+func NewTeamService(tst TeamStorage, ust UserStorage, txman TxManagerStorage) *ServiceImpl {
+	return &ServiceImpl{
 		Tst: tst,
 		Txm: txman,
 		Ust: ust,
 	}
 }
-func (ts *TeamServiceImpl) AddTeam(ctx context.Context, team *models.Team) error {
+func (ts *ServiceImpl) AddTeam(ctx context.Context, team *models.Team) error {
 	tx, err := ts.Txm.BeginTx(ctx)
 	if err != nil {
 		log.Println(err)
@@ -61,7 +67,7 @@ func (ts *TeamServiceImpl) AddTeam(ctx context.Context, team *models.Team) error
 	}
 	return nil
 }
-func (ts *TeamServiceImpl) GetTeam(ctx context.Context, teamname string) (*models.Team, error) {
+func (ts *ServiceImpl) GetTeam(ctx context.Context, teamname string) (*models.Team, error) {
 	err := ts.Tst.SelectExistTeam(ctx, teamname)
 	if err != nil {
 		log.Println(err)
