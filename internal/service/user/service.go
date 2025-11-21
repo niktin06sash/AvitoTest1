@@ -1,4 +1,4 @@
-package service
+package user
 
 import (
 	mye "AvitoTest1/internal/errors"
@@ -7,24 +7,24 @@ import (
 	"log"
 )
 
-type UserServiceUserStorage interface {
+type UserStorage interface {
 	UpdateActive(ctx context.Context, userId string, status bool) (*models.User, error)
 }
-type UserServicePullRequestsStorage interface {
+type PullRequestsStorage interface {
 	SelectReviews(ctx context.Context, userId string) ([]*models.PullRequestShort, error)
 }
-type UserServiceImpl struct {
-	Ust  UserServiceUserStorage
-	PRst UserServicePullRequestsStorage
+type ServiceImpl struct {
+	Ust  UserStorage
+	PRst PullRequestsStorage
 }
 
-func NewUserService(usSt UserServiceUserStorage, prSt UserServicePullRequestsStorage) *UserServiceImpl {
-	return &UserServiceImpl{
+func NewUserService(usSt UserStorage, prSt PullRequestsStorage) *ServiceImpl {
+	return &ServiceImpl{
 		Ust:  usSt,
 		PRst: prSt,
 	}
 }
-func (us *UserServiceImpl) SetIsActive(ctx context.Context, userid string, status bool) (*models.User, error) {
+func (us *ServiceImpl) SetIsActive(ctx context.Context, userid string, status bool) (*models.User, error) {
 	user, err := us.Ust.UpdateActive(ctx, userid, status)
 	if err != nil {
 		log.Println(err)
@@ -32,7 +32,7 @@ func (us *UserServiceImpl) SetIsActive(ctx context.Context, userid string, statu
 	}
 	return user, nil
 }
-func (us *UserServiceImpl) GetUsersReview(ctx context.Context, userid string) ([]*models.PullRequestShort, error) {
+func (us *ServiceImpl) GetUsersReview(ctx context.Context, userid string) ([]*models.PullRequestShort, error) {
 	reqs, err := us.PRst.SelectReviews(ctx, userid)
 	if err != nil {
 		log.Println(err)

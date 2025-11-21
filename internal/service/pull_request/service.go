@@ -1,4 +1,4 @@
-package service
+package pull_request
 
 import (
 	mye "AvitoTest1/internal/errors"
@@ -9,27 +9,27 @@ import (
 	"time"
 )
 
-type PullRequestServiceUserStorage interface {
+type UserStorage interface {
 	SelectActiveMembers(ctx context.Context, userID string) (*models.Team, error)
 }
-type PullRequestServicePullRequestsStorage interface {
+type PullRequestsStorage interface {
 	InsertPullRequest(ctx context.Context, pr *models.PullRequest) error
 	UpdateStatusPullRequest(ctx context.Context, prID string, status models.PullRequestStatus) (*models.PullRequest, error)
 	SelectPullRequest(ctx context.Context, prID string) (*models.PullRequest, error)
 	UpdateReviewersPullRequest(ctx context.Context, pr_id string, rews []string) error
 }
-type PullRequestServiceImpl struct {
-	Ust  PullRequestServiceUserStorage
-	PRst PullRequestServicePullRequestsStorage
+type ServiceImpl struct {
+	Ust  UserStorage
+	PRst PullRequestsStorage
 }
 
-func NewPullRequestService(ust PullRequestServiceUserStorage, prst PullRequestServicePullRequestsStorage) *PullRequestServiceImpl {
-	return &PullRequestServiceImpl{
+func NewPullRequestService(ust UserStorage, prst PullRequestsStorage) *ServiceImpl {
+	return &ServiceImpl{
 		Ust:  ust,
 		PRst: prst,
 	}
 }
-func (pr *PullRequestServiceImpl) CreatePullRequest(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error) {
+func (pr *ServiceImpl) CreatePullRequest(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error) {
 	members, err := pr.Ust.SelectActiveMembers(ctx, authorID)
 	if err != nil {
 		log.Println(err)
@@ -71,7 +71,7 @@ func (pr *PullRequestServiceImpl) CreatePullRequest(ctx context.Context, authorI
 	}
 	return prs, nil
 }
-func (pr *PullRequestServiceImpl) MergePullRequest(ctx context.Context, prID string) (*models.PullRequest, error) {
+func (pr *ServiceImpl) MergePullRequest(ctx context.Context, prID string) (*models.PullRequest, error) {
 	prq, err := pr.PRst.UpdateStatusPullRequest(ctx, prID, models.PullRequestStatusMERGED)
 	if err != nil {
 		log.Println(err)
@@ -79,7 +79,7 @@ func (pr *PullRequestServiceImpl) MergePullRequest(ctx context.Context, prID str
 	}
 	return prq, nil
 }
-func (pr *PullRequestServiceImpl) ReassignPullRequest(ctx context.Context, olduserID string, prID string) (*models.PullRequest, string, error) {
+func (pr *ServiceImpl) ReassignPullRequest(ctx context.Context, olduserID string, prID string) (*models.PullRequest, string, error) {
 	prq, err := pr.PRst.SelectPullRequest(ctx, prID)
 	if err != nil {
 		log.Println(err)
