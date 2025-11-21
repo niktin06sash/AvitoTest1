@@ -16,7 +16,7 @@ func (us *PullRequestStorageImpl) SelectReviews(ctx context.Context, userId stri
 	const query = `
 	SELECT pull_request_id, pull_request_name, author_id, status
 	FROM pull_requests
-	WHERE $1 = ANY(pr.assigned_reviewers);
+	WHERE $1 = ANY(pr.assigned_reviewers)
 	`
 	rows, err := us.db.pool.Query(ctx, query, userId)
 	if err != nil {
@@ -52,6 +52,28 @@ func (us *PullRequestStorageImpl) UpdateStatusPullRequest(ctx context.Context, p
 	pr := &models.PullRequest{}
 	err := us.db.pool.QueryRow(ctx, query, prID, status).Scan(&pr.Status, &pr.MergedAt, &pr.AssignedReviewers, &pr.AuthorId, &pr.Status,
 		&pr.PullRequestId, &pr.PullRequestName, &pr.CreatedAt)
+	if err != nil {
+		return nil, err
+	}
+	return pr, nil
+}
+func (us *PullRequestStorageImpl) UpdateReviewersPullRequest(ctx context.Context, pr_id string, rews []string) error {
+	const query = `UPDATE pull_requests 
+	SET 
+   		assigned_reviewers = $2,
+	WHERE pr_id = $1 
+	`
+	_, err := us.db.pool.Exec(ctx, query, pr_id, rews)
+	return err
+}
+func (us *PullRequestStorageImpl) SelectPullRequest(ctx context.Context, prID string) (*models.PullRequest, error) {
+	const query = `
+	SELECT pull_request_id, pull_request_name, author_id, status, assigned_reviewers
+	FROM pull_requests
+	WHERE $1 = pull_request_id
+	`
+	pr := &models.PullRequest{}
+	err := us.db.pool.QueryRow(ctx, query, prID).Scan(pr.PullRequestId, pr.PullRequestName, pr.AuthorId, pr.Status, pr.AssignedReviewers)
 	if err != nil {
 		return nil, err
 	}

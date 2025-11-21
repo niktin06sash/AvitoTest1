@@ -75,7 +75,7 @@ func (us *UserStorageImpl) SelectTeamMember(ctx context.Context, teamname string
 	team.TeamName = teamname
 	return team, nil
 }
-func (us *UserStorageImpl) SelectActiveMembers(ctx context.Context, authorID string) (*models.Team, error) {
+func (us *UserStorageImpl) SelectActiveMembers(ctx context.Context, userID string) (*models.Team, error) {
 	const query = `
     SELECT u2.user_id, u2.username, u2.is_active, u1.team_name
     FROM users AS u1
@@ -85,7 +85,7 @@ func (us *UserStorageImpl) SelectActiveMembers(ctx context.Context, authorID str
        AND u2.user_id <> u1.user_id
     WHERE u1.user_id = $1
     `
-	rows, err := us.db.pool.Query(ctx, query, authorID)
+	rows, err := us.db.pool.Query(ctx, query, userID)
 	if err != nil {
 		return nil, err
 	}
