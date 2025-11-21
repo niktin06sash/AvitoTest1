@@ -1,9 +1,9 @@
 package storage
 
 import (
+	mye "AvitoTest1/internal/errors"
 	"AvitoTest1/internal/models"
 	"context"
-	"errors"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -33,7 +33,7 @@ func (ts *TeamStorageImpl) SelectExistTeam(ctx context.Context, tn string) error
 		return err
 	}
 	if !exist {
-		return errors.New("command not found")
+		return mye.ErrTeamExist
 	}
 	return nil
 }

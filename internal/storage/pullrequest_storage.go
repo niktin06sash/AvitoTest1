@@ -16,7 +16,7 @@ func (us *PullRequestStorageImpl) SelectReviews(ctx context.Context, userId stri
 	const query = `
 	SELECT pull_request_id, pull_request_name, author_id, status
 	FROM pull_requests
-	WHERE $1 = ANY(pr.assigned_reviewers)
+	WHERE $1 = ANY(assigned_reviewers)
 	`
 	rows, err := us.db.pool.Query(ctx, query, userId)
 	if err != nil {
@@ -47,11 +47,11 @@ func (us *PullRequestStorageImpl) UpdateStatusPullRequest(ctx context.Context, p
    		status = $2,
     	merged_at = COALESCE(merged_at, NOW())
 	WHERE pr_id = $1 
-	RETURNING status, merged_at, assigned_reviewers, author_id, status, pull_request_id, pull_request_name, created_at
+	RETURNING status, merged_at, assigned_reviewers, author_id, status, pull_request_id, pull_request_name
 	`
 	pr := &models.PullRequest{}
 	err := us.db.pool.QueryRow(ctx, query, prID, status).Scan(&pr.Status, &pr.MergedAt, &pr.AssignedReviewers, &pr.AuthorId, &pr.Status,
-		&pr.PullRequestId, &pr.PullRequestName, &pr.CreatedAt)
+		&pr.PullRequestId, &pr.PullRequestName)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (us *PullRequestStorageImpl) UpdateReviewersPullRequest(ctx context.Context
 	const query = `UPDATE pull_requests 
 	SET 
    		assigned_reviewers = $2,
-	WHERE pr_id = $1 
+	WHERE pull_request_id = $1 
 	`
 	_, err := us.db.pool.Exec(ctx, query, pr_id, rews)
 	return err

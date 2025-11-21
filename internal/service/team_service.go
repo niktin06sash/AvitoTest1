@@ -1,6 +1,7 @@
 package service
 
 import (
+	mye "AvitoTest1/internal/errors"
 	"AvitoTest1/internal/models"
 	"context"
 	"log"
@@ -33,7 +34,7 @@ func (ts *TeamServiceImpl) AddTeam(ctx context.Context, team *models.Team) error
 	tx, err := ts.Txm.BeginTx(ctx)
 	if err != nil {
 		log.Println(err)
-		return err
+		return mye.ErrTeamExist
 	}
 	err = ts.Tst.InsertTeam(ctx, tx, team)
 	if err != nil {
@@ -42,7 +43,7 @@ func (ts *TeamServiceImpl) AddTeam(ctx context.Context, team *models.Team) error
 		if rolbackerr != nil {
 			log.Println(rolbackerr)
 		}
-		return err
+		return mye.ErrTeamExist
 	}
 	err = ts.Ust.InsertOrUpdateUsers(ctx, tx, team.Members, team.TeamName)
 	if err != nil {
@@ -51,12 +52,12 @@ func (ts *TeamServiceImpl) AddTeam(ctx context.Context, team *models.Team) error
 		if rolbackerr != nil {
 			log.Println(rolbackerr)
 		}
-		return err
+		return mye.ErrTeamExist
 	}
 	err = ts.Txm.Commit(ctx, tx)
 	if err != nil {
 		log.Println(err)
-		return err
+		return mye.ErrTeamExist
 	}
 	return nil
 }
@@ -64,12 +65,12 @@ func (ts *TeamServiceImpl) GetTeam(ctx context.Context, teamname string) (*model
 	err := ts.Tst.SelectExistTeam(ctx, teamname)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, mye.ErrTeamExist
 	}
 	members, err := ts.Ust.SelectTeamMember(ctx, teamname)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, mye.ErrTeamExist
 	}
 	return members, nil
 }
