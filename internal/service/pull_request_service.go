@@ -10,11 +10,13 @@ import (
 )
 
 type PullRequestServiceUserStorage interface {
-	SelectActiveMembers(ctx context.Context, authorID string) (*models.Team, error)
+	SelectActiveMembers(ctx context.Context, userID string) (*models.Team, error)
 }
 type PullRequestServicePullRequestsStorage interface {
 	InsertPullRequest(ctx context.Context, pr *models.PullRequest) error
 	UpdateStatusPullRequest(ctx context.Context, prID string, status models.PullRequestStatus) (*models.PullRequest, error)
+	SelectPullRequest(ctx context.Context, prID string) (*models.PullRequest, error)
+	UpdateReviewersPullRequest(ctx context.Context, pr_id string, rews []string) error
 }
 type PullRequestServiceImpl struct {
 	Ust  PullRequestServiceUserStorage
@@ -76,4 +78,53 @@ func (pr *PullRequestServiceImpl) MergePullRequest(ctx context.Context, prID str
 		return nil, err
 	}
 	return prq, nil
+}
+func (pr *PullRequestServiceImpl) ReassignPullRequest(ctx context.Context, olduserID string, prID string) (*models.PullRequest, string, error) {
+	prq, err := pr.PRst.SelectPullRequest(ctx, prID)
+	if err != nil {
+		log.Println(err)
+		return nil, "", errors.New("resource not found")
+	}
+	if prq.Status == models.PullRequestStatusMERGED {
+		return nil, "", errors.New("cannot reassign on merged PR")
+	}
+	delidx := -1
+	for i, rew := range prq.AssignedReviewers {
+		if rew == olduserID {
+			delidx = i
+			break
+		}
+	}
+	if delidx == -1 {
+		return nil, "", errors.New("reviewer is not assigned to this PR")
+	}
+	members, err := pr.Ust.SelectActiveMembers(ctx, olduserID)
+	if err != nil {
+		log.Println(err)
+		return nil, "", errors.New("resource not found")
+	}
+	if len(members.Members) == 0 {
+		return nil, "", errors.New("no active replacement candidate in team")
+	}
+	//удаляем из доступных активных участников команды уже существующего ревьюера в пул-реквесте для избежания появления дубликата
+	excluded := make(map[string]bool)
+	for _, reviewerID := range prq.AssignedReviewers {
+		excluded[reviewerID] = true
+	}
+	truecandidates := &models.Team{}
+	for _, member := range members.Members {
+		if !excluded[member.UserId] {
+			truecandidates.Members = append(truecandidates.Members, member)
+		}
+	}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	randomidx := r.Intn(len(truecandidates.Members))
+	randomreviewer := truecandidates.Members[randomidx]
+	prq.AssignedReviewers[delidx] = randomreviewer.UserId
+	err = pr.PRst.UpdateReviewersPullRequest(ctx, prID, prq.AssignedReviewers)
+	if err != nil {
+		log.Println(err)
+		return nil, "", errors.New("resource not found")
+	}
+	return prq, randomreviewer.UserId, nil
 }

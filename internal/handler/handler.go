@@ -18,6 +18,7 @@ type TeamService interface {
 type PullRequestService interface {
 	CreatePullRequest(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error)
 	MergePullRequest(ctx context.Context, prID string) (*models.PullRequest, error)
+	ReassignPullRequest(ctx context.Context, olduserID string, prID string) (*models.PullRequest, string, error)
 }
 type HandlerImpl struct {
 	usService UserService
@@ -117,7 +118,71 @@ func (h *HandlerImpl) PostPullRequestMerge(w http.ResponseWriter, r *http.Reques
 	json.NewEncoder(w).Encode(pr)
 }
 func (h *HandlerImpl) PostPullRequestReassign(w http.ResponseWriter, r *http.Request) {
-
+	var req PostPullRequestReassignJSONBody
+	pr, newrew, err := h.prService.ReassignPullRequest(r.Context(), req.OldUserId, req.PullRequestId)
+	if err != nil {
+		if err.Error() == "resource not found" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			errResp := ErrorResponse{
+				Error: struct {
+					Code    ErrorResponseErrorCode "json:\"code\""
+					Message string                 "json:\"message\""
+				}{
+					Code:    NOTFOUND,
+					Message: "resource not found",
+				},
+			}
+			json.NewEncoder(w).Encode(errResp)
+		} else if err.Error() == "reviewer is not assigned to this PR" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(409)
+			errResp := ErrorResponse{
+				Error: struct {
+					Code    ErrorResponseErrorCode "json:\"code\""
+					Message string                 "json:\"message\""
+				}{
+					Code:    NOTASSIGNED,
+					Message: "reviewer is not assigned to this PR",
+				},
+			}
+			json.NewEncoder(w).Encode(errResp)
+		} else if err.Error() == "no active replacement candidate in team" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(409)
+			errResp := ErrorResponse{
+				Error: struct {
+					Code    ErrorResponseErrorCode "json:\"code\""
+					Message string                 "json:\"message\""
+				}{
+					Code:    NOCANDIDATE,
+					Message: "no active replacement candidate in team",
+				},
+			}
+			json.NewEncoder(w).Encode(errResp)
+		} else if err.Error() == "cannot reassign on merged PR" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(409)
+			errResp := ErrorResponse{
+				Error: struct {
+					Code    ErrorResponseErrorCode "json:\"code\""
+					Message string                 "json:\"message\""
+				}{
+					Code:    PRMERGED,
+					Message: "cannot reassign on merged PR",
+				},
+			}
+			json.NewEncoder(w).Encode(errResp)
+		}
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	response := map[string]interface{}{
+		"pr":          pr,
+		"replaced_by": newrew,
+	}
+	json.NewEncoder(w).Encode(response)
 }
 func (h *HandlerImpl) PostTeamAdd(w http.ResponseWriter, r *http.Request) {
 	var req models.Team
