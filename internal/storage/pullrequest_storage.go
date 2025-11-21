@@ -46,7 +46,7 @@ func (us *PullRequestStorageImpl) UpdateStatusPullRequest(ctx context.Context, p
 	SET 
    		status = $2,
     	merged_at = COALESCE(merged_at, NOW())
-	WHERE pr_id = $1 
+	WHERE pull_request_id = $1 
 	RETURNING status, merged_at, assigned_reviewers, author_id, status, pull_request_id, pull_request_name
 	`
 	pr := &models.PullRequest{}
