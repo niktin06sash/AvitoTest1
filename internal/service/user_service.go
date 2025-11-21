@@ -1,6 +1,7 @@
 package service
 
 import (
+	mye "AvitoTest1/internal/errors"
 	"AvitoTest1/internal/models"
 	"context"
 	"log"
@@ -27,7 +28,7 @@ func (us *UserServiceImpl) SetIsActive(ctx context.Context, userid string, statu
 	user, err := us.Ust.UpdateActive(ctx, userid, status)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, mye.ErrResourceNotFound
 	}
 	return user, nil
 }
@@ -35,7 +36,7 @@ func (us *UserServiceImpl) GetUsersReview(ctx context.Context, userid string) ([
 	reqs, err := us.PRst.SelectReviews(ctx, userid)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, mye.ErrResourceNotFound
 	}
 	return reqs, nil
 }

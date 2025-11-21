@@ -1,9 +1,9 @@
 package service
 
 import (
+	mye "AvitoTest1/internal/errors"
 	"AvitoTest1/internal/models"
 	"context"
-	"errors"
 	"log"
 	"math/rand"
 	"time"
@@ -33,7 +33,7 @@ func (pr *PullRequestServiceImpl) CreatePullRequest(ctx context.Context, authorI
 	members, err := pr.Ust.SelectActiveMembers(ctx, authorID)
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("resource not found")
+		return nil, mye.ErrResourceNotFound
 	}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	count := r.Intn(3)
@@ -67,7 +67,7 @@ func (pr *PullRequestServiceImpl) CreatePullRequest(ctx context.Context, authorI
 	err = pr.PRst.InsertPullRequest(ctx, prs)
 	if err != nil {
 		log.Println(err)
-		return nil, errors.New("PR id already exists")
+		return nil, mye.ErrPRExist
 	}
 	return prs, nil
 }
@@ -75,7 +75,7 @@ func (pr *PullRequestServiceImpl) MergePullRequest(ctx context.Context, prID str
 	prq, err := pr.PRst.UpdateStatusPullRequest(ctx, prID, models.PullRequestStatusMERGED)
 	if err != nil {
 		log.Println(err)
-		return nil, err
+		return nil, mye.ErrResourceNotFound
 	}
 	return prq, nil
 }
@@ -83,10 +83,10 @@ func (pr *PullRequestServiceImpl) ReassignPullRequest(ctx context.Context, oldus
 	prq, err := pr.PRst.SelectPullRequest(ctx, prID)
 	if err != nil {
 		log.Println(err)
-		return nil, "", errors.New("resource not found")
+		return nil, "", mye.ErrResourceNotFound
 	}
 	if prq.Status == models.PullRequestStatusMERGED {
-		return nil, "", errors.New("cannot reassign on merged PR")
+		return nil, "", mye.ErrMergedPR
 	}
 	delidx := -1
 	for i, rew := range prq.AssignedReviewers {
@@ -96,15 +96,15 @@ func (pr *PullRequestServiceImpl) ReassignPullRequest(ctx context.Context, oldus
 		}
 	}
 	if delidx == -1 {
-		return nil, "", errors.New("reviewer is not assigned to this PR")
+		return nil, "", mye.ErrReviewerNotAssigned
 	}
 	members, err := pr.Ust.SelectActiveMembers(ctx, olduserID)
 	if err != nil {
 		log.Println(err)
-		return nil, "", errors.New("resource not found")
+		return nil, "", mye.ErrResourceNotFound
 	}
 	if len(members.Members) == 0 {
-		return nil, "", errors.New("no active replacement candidate in team")
+		return nil, "", mye.ErrNoActiveCandidate
 	}
 	//удаляем из доступных активных участников команды уже существующего ревьюера в пул-реквесте для избежания появления дубликата
 	excluded := make(map[string]bool)
@@ -124,7 +124,7 @@ func (pr *PullRequestServiceImpl) ReassignPullRequest(ctx context.Context, oldus
 	err = pr.PRst.UpdateReviewersPullRequest(ctx, prID, prq.AssignedReviewers)
 	if err != nil {
 		log.Println(err)
-		return nil, "", errors.New("resource not found")
+		return nil, "", mye.ErrResourceNotFound
 	}
 	return prq, randomreviewer.UserId, nil
 }
