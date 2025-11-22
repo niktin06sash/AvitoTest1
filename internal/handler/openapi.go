@@ -6,6 +6,7 @@
 package handler
 
 import (
+	"AvitoTest1/internal/logger"
 	"fmt"
 	"net/http"
 
@@ -330,8 +331,9 @@ func (e *TooManyValuesForParamError) Error() string {
 }
 
 // Handler creates http.Handler with routing matching OpenAPI spec.
-func NewHandler(usService UserService, tService TeamService, prService PullRequestService) http.Handler {
+func NewHandler(logger *logger.Logger, usService UserService, tService TeamService, prService PullRequestService) http.Handler {
 	handler := &HandlerImpl{
+		logger: logger,
 		usService: usService,
 		tService: tService,
 		prService: prService,

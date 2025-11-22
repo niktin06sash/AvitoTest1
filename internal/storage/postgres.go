@@ -1,8 +1,8 @@
 package storage
 
 import (
+	"AvitoTest1/internal/logger"
 	"context"
-	"log"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -22,15 +22,13 @@ func NewDBObject(connectionString string) (*DBObject, error) {
 	}
 	err = pool.Ping(context.TODO())
 	if err != nil {
-		pool.Close()
 		return nil, err
 	}
-	log.Println("Successful connect to Postgres-Client")
 	return &DBObject{pool: pool}, nil
 }
-func (db *DBObject) Close() {
+func (db *DBObject) Close(log *logger.Logger) {
 	db.pool.Close()
-	log.Println("Successful close Postgre-Client")
+	log.ZapLogger.Debug("Successful close database connect")
 }
 func (db *DBObject) Ping(ctx context.Context) error {
 	err := db.pool.Ping(ctx)

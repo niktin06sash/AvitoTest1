@@ -2,11 +2,13 @@ package pull_request
 
 import (
 	mye "AvitoTest1/internal/errors"
+	"AvitoTest1/internal/logger"
 	"AvitoTest1/internal/models"
 	"context"
-	"log"
 	"math/rand"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 type UserStorage interface {
@@ -19,11 +21,12 @@ type PullRequestsStorage interface {
 	UpdateReviewersPullRequest(ctx context.Context, pr_id string, rews []string) error
 }
 type ServiceImpl struct {
-	Ust  UserStorage
-	PRst PullRequestsStorage
+	Ust    UserStorage
+	PRst   PullRequestsStorage
+	Logger *logger.Logger
 }
 
-func NewPullRequestService(ust UserStorage, prst PullRequestsStorage) *ServiceImpl {
+func NewPullRequestService(logger *logger.Logger, ust UserStorage, prst PullRequestsStorage) *ServiceImpl {
 	return &ServiceImpl{
 		Ust:  ust,
 		PRst: prst,
@@ -32,7 +35,7 @@ func NewPullRequestService(ust UserStorage, prst PullRequestsStorage) *ServiceIm
 func (pr *ServiceImpl) CreatePullRequest(ctx context.Context, authorID string, id string, name string) (*models.PullRequest, error) {
 	members, err := pr.Ust.SelectActiveMembers(ctx, authorID)
 	if err != nil {
-		log.Println(err)
+		pr.Logger.ZapLogger.Error("SelectActiveMembers", zap.Error(err), zap.String("authorID", authorID))
 		return nil, mye.ErrResourceNotFound
 	}
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -66,26 +69,29 @@ func (pr *ServiceImpl) CreatePullRequest(ctx context.Context, authorID string, i
 	}
 	err = pr.PRst.InsertPullRequest(ctx, prs)
 	if err != nil {
-		log.Println(err)
+		pr.Logger.ZapLogger.Error("InsertPullRequest", zap.Error(err))
 		return nil, mye.ErrPRExist
 	}
+	pr.Logger.ZapLogger.Info("Successful created pull request", zap.String("authorID", authorID), zap.String("pull_request_id", id))
 	return prs, nil
 }
 func (pr *ServiceImpl) MergePullRequest(ctx context.Context, prID string) (*models.PullRequest, error) {
 	prq, err := pr.PRst.UpdateStatusPullRequest(ctx, prID, models.PullRequestStatusMERGED)
 	if err != nil {
-		log.Println(err)
+		pr.Logger.ZapLogger.Error("UpdateStatusPullRequest", zap.Error(err), zap.String("pull_request_id", prID))
 		return nil, mye.ErrResourceNotFound
 	}
+	pr.Logger.ZapLogger.Info("Successful merged pull request", zap.String("pull_request_id", prID))
 	return prq, nil
 }
 func (pr *ServiceImpl) ReassignPullRequest(ctx context.Context, olduserID string, prID string) (*models.PullRequest, string, error) {
 	prq, err := pr.PRst.SelectPullRequest(ctx, prID)
 	if err != nil {
-		log.Println(err)
+		pr.Logger.ZapLogger.Error("SelectPullRequest", zap.Error(err), zap.String("pull_request_id", prID))
 		return nil, "", mye.ErrResourceNotFound
 	}
 	if prq.Status == models.PullRequestStatusMERGED {
+		pr.Logger.ZapLogger.Warn("Reassign merged pull request", zap.String("pull_request_id", prID))
 		return nil, "", mye.ErrMergedPR
 	}
 	delidx := -1
@@ -96,14 +102,16 @@ func (pr *ServiceImpl) ReassignPullRequest(ctx context.Context, olduserID string
 		}
 	}
 	if delidx == -1 {
+		pr.Logger.ZapLogger.Warn("Reviewer Not Assigned", zap.String("old_user_id", olduserID), zap.String("pull_request_id", prID))
 		return nil, "", mye.ErrReviewerNotAssigned
 	}
 	members, err := pr.Ust.SelectActiveMembers(ctx, olduserID)
 	if err != nil {
-		log.Println(err)
+		pr.Logger.ZapLogger.Error("SelectActiveMembers", zap.Error(err), zap.String("old_user_id", olduserID), zap.String("pull_request_id", prID))
 		return nil, "", mye.ErrResourceNotFound
 	}
 	if len(members.Members) == 0 {
+		pr.Logger.ZapLogger.Warn("No active candidate found", zap.String("pull_request_id", prID))
 		return nil, "", mye.ErrNoActiveCandidate
 	}
 	//удаляем из доступных активных участников команды уже существующего ревьюера в пул-реквесте для избежания появления дубликата
@@ -123,8 +131,9 @@ func (pr *ServiceImpl) ReassignPullRequest(ctx context.Context, olduserID string
 	prq.AssignedReviewers[delidx] = randomreviewer.UserId
 	err = pr.PRst.UpdateReviewersPullRequest(ctx, prID, prq.AssignedReviewers)
 	if err != nil {
-		log.Println(err)
+		pr.Logger.ZapLogger.Error("UpdateReviewersPullRequest", zap.Error(err), zap.String("pull_request_id", prID))
 		return nil, "", mye.ErrResourceNotFound
 	}
+	pr.Logger.ZapLogger.Info("Successful reassigned pull request", zap.String("old_user_id", olduserID), zap.String("new_user_id", randomreviewer.UserId), zap.String("pull_request_id", prID))
 	return prq, randomreviewer.UserId, nil
 }
