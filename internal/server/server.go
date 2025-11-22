@@ -1,6 +1,7 @@
 package server
 
 import (
+	"AvitoTest1/config"
 	"context"
 	"net/http"
 )
@@ -9,11 +10,13 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func NewServer(handler http.Handler) *Server {
+func NewServer(cfg config.ServerConfig, handler http.Handler) *Server {
 	server := &Server{}
 	server.httpServer = &http.Server{
-		Addr:    ":" + "8080",
-		Handler: handler,
+		Addr:         ":" + cfg.Port,
+		Handler:      handler,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
 	}
 	return server
 }

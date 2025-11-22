@@ -1,8 +1,10 @@
 package storage
 
 import (
+	"AvitoTest1/config"
 	"AvitoTest1/internal/logger"
 	"context"
+	"fmt"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 )
@@ -11,8 +13,9 @@ type DBObject struct {
 	pool *pgxpool.Pool
 }
 
-func NewDBObject(connectionString string) (*DBObject, error) {
-	poolConfig, err := pgxpool.ParseConfig(connectionString)
+func NewDBObject(cfg config.DatabaseConfig) (*DBObject, error) {
+	conurl := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
+	poolConfig, err := pgxpool.ParseConfig(conurl)
 	if err != nil {
 		return nil, err
 	}
