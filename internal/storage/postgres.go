@@ -14,7 +14,7 @@ type DBObject struct {
 }
 
 func NewDBObject(cfg config.DatabaseConfig) (*DBObject, error) {
-	conurl := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
+	conurl := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
 	poolConfig, err := pgxpool.ParseConfig(conurl)
 	if err != nil {
 		return nil, err
