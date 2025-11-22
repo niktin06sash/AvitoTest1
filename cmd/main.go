@@ -1,6 +1,7 @@
 package main
 
 import (
+	"AvitoTest1/config"
 	"AvitoTest1/internal/handler"
 	"AvitoTest1/internal/logger"
 	"AvitoTest1/internal/server"
@@ -10,18 +11,21 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"go.uber.org/zap"
 )
 
 func main() {
+	conf, err := config.NewConfig()
+	if err != nil {
+		panic(err)
+	}
 	loger, err := logger.NewLogger()
 	if err != nil {
 		panic(err)
 	}
 	defer loger.Sync()
-	db, err := storage.NewDBObject("")
+	db, err := storage.NewDBObject(conf.Database)
 	if err != nil {
 		panic(err)
 	}
@@ -30,7 +34,7 @@ func main() {
 	st := storage.NewStorage(db)
 	srvc := service.NewService(loger, st.Usst, st.PRst, st.Tst, st.Usst, st.TxMan, st.Usst, st.PRst)
 	handler := handler.NewHandler(loger, srvc.UserService, srvc.TeamService, srvc.PullRequestService)
-	server := server.NewServer(handler)
+	server := server.NewServer(conf.Server, handler)
 	//gracefull shutdown
 	serverError := make(chan error, 1)
 	go func() {
@@ -49,7 +53,7 @@ func main() {
 		loger.ZapLogger.Debug("Server startup failed", zap.Error(err))
 		return
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), conf.Server.GracefulShutdown)
 	defer cancel()
 	loger.ZapLogger.Debug("Server is shutting down...")
 	if err := server.Shutdown(ctx); err != nil {
