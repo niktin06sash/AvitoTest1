@@ -4,8 +4,6 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -27,15 +25,11 @@ type ServerConfig struct {
 }
 
 func NewConfig() (*Config, error) {
-	err := godotenv.Load("settings.env")
-	if err != nil {
-		return nil, err
-	}
 	dbuser := os.Getenv("POSTGRES_USER")
 	dbpassword := os.Getenv("POSTGRES_PASSWORD")
 	dbname := os.Getenv("POSTGRES_DB")
-	dbhost := os.Getenv("DATABASE_HOST")
-	dbPort := os.Getenv("DATABASE_PORT")
+	dbhost := os.Getenv("CONTAINER_DATABASE_HOST")
+	dbPort := os.Getenv("CONTAINER_DATABASE_PORT")
 	serverPort := os.Getenv("SERVER_PORT")
 	serverRTimeout := os.Getenv("SERVER_READ_TIMEOUT")
 	serverWTimeout := os.Getenv("SERVER_WRITE_TIMEOUT")

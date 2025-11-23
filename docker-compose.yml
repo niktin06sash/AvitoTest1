@@ -1,15 +1,14 @@
-version: "3.9" 
 networks:
   frontend_net:
-  backend_net:
+  data_net:
 services:
-    database:
+    avito_database:
       image: postgres:17
       container_name: avito_database
       ports:
-        - "5432:5432"
+        - "5435:5432"
       networks:
-        - backend_net
+        - data_net
       volumes:
         - db_data:/var/lib/postgresql/data
       environment:
@@ -25,12 +24,24 @@ services:
     go-service:
       networks:
         - frontend_net
-        - backend_net 
+        - data_net
       build:
         context: .
         dockerfile: Dockerfile
       container_name: avito_service
+      environment:
+        POSTGRES_USER: ${POSTGRES_USER}
+        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+        POSTGRES_DB: ${POSTGRES_DB}
+        CONTAINER_DATABASE_HOST: ${CONTAINER_DATABASE_HOST}
+        CONTAINER_DATABASE_PORT: ${CONTAINER_DATABASE_PORT}
+        SERVER_PORT: ${SERVER_PORT}
+        SERVER_READ_TIMEOUT: ${SERVER_READ_TIMEOUT}
+        SERVER_WRITE_TIMEOUT: ${SERVER_WRITE_TIMEOUT}
+        SERVER_GRACEFUL_SHUTDOWN_TIMEOUT: ${SERVER_GRACEFUL_SHUTDOWN_TIMEOUT}
       ports:
         - "8080:8080"
+      depends_on:
+        - avito_database
 volumes:
     db_data:
