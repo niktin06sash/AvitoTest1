@@ -5,8 +5,10 @@ import (
 	"AvitoTest1/internal/logger"
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type DBObject struct {
@@ -14,16 +16,18 @@ type DBObject struct {
 }
 
 func NewDBObject(cfg config.DatabaseConfig) (*DBObject, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 	conurl := fmt.Sprintf("postgresql://%s:%s@%s:%d/%s?sslmode=disable", cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.Name)
 	poolConfig, err := pgxpool.ParseConfig(conurl)
 	if err != nil {
 		return nil, err
 	}
-	pool, err := pgxpool.NewWithConfig(context.TODO(), poolConfig)
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, err
 	}
-	err = pool.Ping(context.TODO())
+	err = pool.Ping(ctx)
 	if err != nil {
 		return nil, err
 	}
